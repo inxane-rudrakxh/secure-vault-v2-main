@@ -24,6 +24,7 @@ import { ResetPinDialog } from "@/components/settings/ResetPinDialog";
 import { AppLockSettings } from "@/components/settings/AppLockSettings";
 import { TwoFactorSettings } from "@/components/settings/TwoFactorSettings";
 import { SubscriptionComingSoonModal } from "@/components/settings/SubscriptionComingSoonModal";
+import { ChangePasswordDialog } from "@/components/settings/ChangePasswordDialog";
 
 const formatBytes = (bytes: number): string => {
   if (bytes === 0) return "0 B";
@@ -132,12 +133,10 @@ export const Settings: React.FC = () => {
               </div>
               <div>
                 <p className="font-medium">Password</p>
-                <p className="text-sm text-muted-foreground">Last changed: Never</p>
+                <p className="text-sm text-muted-foreground">Change your account password</p>
               </div>
             </div>
-            <Button variant="outline" size="sm">
-              Change
-            </Button>
+            <ChangePasswordDialog />
           </div>
 
           {/* Reset Encryption PIN */}

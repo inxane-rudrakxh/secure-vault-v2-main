@@ -1,4 +1,4 @@
-﻿import { getApp, getApps, initializeApp } from "firebase/app";
+import { getApp, getApps, initializeApp } from "firebase/app";
 import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
@@ -16,8 +16,9 @@ const missingConfig = Object.entries(firebaseConfig)
   .map(([key]) => key);
 
 if (missingConfig.length > 0) {
-  console.warn(
-    `Firebase config is incomplete. Missing: ${missingConfig.join(", ")}. Set VITE_FIREBASE_* env vars.`
+  console.error(
+    `[SecureVault] ⚠️ Firebase config is missing! Add these to your Vercel/environment settings:\n` +
+    missingConfig.map((k) => `  → VITE_${k.replace(/([A-Z])/g, "_$1").toUpperCase()}`).join("\n")
   );
 }
 
@@ -30,3 +31,4 @@ setPersistence(auth, browserLocalPersistence).catch((error) => {
 
 export const db = getFirestore(app);
 export { app };
+

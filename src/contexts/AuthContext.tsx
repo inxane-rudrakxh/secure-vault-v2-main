@@ -1,4 +1,4 @@
-﻿import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import {
   User as FirebaseUser,
   createUserWithEmailAndPassword,
@@ -178,8 +178,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await signInWithEmailAndPassword(auth, email, password);
       setFailedAttempts(0);
       return { success: true };
-    } catch (error: any) {
-      const errorMessage = error?.message || "Invalid credentials";
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Invalid credentials";
       await logIntruderAttempt(email, errorMessage);
       return { success: false, error: errorMessage };
     }
@@ -206,8 +206,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       );
 
       return { success: true };
-    } catch (error: any) {
-      return { success: false, error: error?.message || "Registration failed" };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : "Registration failed" };
     }
   };
 

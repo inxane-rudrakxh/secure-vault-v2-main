@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Smartphone, Loader2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,7 +47,7 @@ export const TwoFactorSettings: React.FC = () => {
     return doc(db, "users", user.id, "security", "totp");
   };
 
-  const checkStatus = async () => {
+  const checkStatus = useCallback(async () => {
     const totpRef = getTotpRef();
     if (!totpRef) {
       setIsEnabled(false);
@@ -64,11 +64,11 @@ export const TwoFactorSettings: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     checkStatus();
-  }, [user?.id]);
+  }, [checkStatus]);
 
   const startSetup = async () => {
     if (!user?.id || !user.email) return;
@@ -96,8 +96,8 @@ export const TwoFactorSettings: React.FC = () => {
       setSetupStep("qr");
       setVerifyCode("");
       setSetupOpen(true);
-    } catch (error: any) {
-      toast.error(error?.message || "Failed to start 2FA setup");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to start 2FA setup");
     } finally {
       setSetupLoading(false);
     }

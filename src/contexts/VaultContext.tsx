@@ -1,4 +1,4 @@
-﻿import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import {
   Timestamp,
   addDoc,
@@ -44,7 +44,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isLoading, setIsLoading] = useState(true);
   const { user, isAuthenticated } = useAuth();
 
-  const fetchFiles = async () => {
+  const fetchFiles = useCallback(async () => {
     if (!isAuthenticated || !user) {
       setFiles([]);
       setIsLoading(false);
@@ -77,7 +77,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isAuthenticated, user]);
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -86,7 +86,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setFiles([]);
       setIsLoading(false);
     }
-  }, [isAuthenticated, user?.id]);
+  }, [fetchFiles, isAuthenticated, user]);
 
   const storageUsed = files.reduce((acc, file) => acc + file.size, 0);
 

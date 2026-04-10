@@ -1,4 +1,4 @@
-﻿import { getMessaging, getToken, isSupported, onMessage } from "firebase/messaging";
+import { getMessaging, getToken, isSupported, onMessage, MessagePayload } from "firebase/messaging";
 import { app, firebaseConfig } from "@/integrations/firebase/client";
 
 const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY as string | undefined;
@@ -52,7 +52,7 @@ export async function getFcmToken(
   }
 }
 
-export function onForegroundFcmMessage(handler: (payload: any) => void): () => void {
+export function onForegroundFcmMessage(handler: (payload: MessagePayload) => void): () => void {
   const messaging = getMessaging(app);
   return onMessage(messaging, handler);
 }
