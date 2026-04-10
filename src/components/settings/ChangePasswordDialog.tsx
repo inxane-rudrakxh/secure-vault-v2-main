@@ -15,6 +15,7 @@ import {
   EmailAuthProvider,
   reauthenticateWithCredential,
   updatePassword,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import { auth } from "@/integrations/firebase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -32,6 +33,7 @@ export const ChangePasswordDialog: React.FC = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   const resetForm = () => {
     setCurrentPassword("");
@@ -47,6 +49,23 @@ export const ChangePasswordDialog: React.FC = () => {
   const handleOpenChange = (isOpen: boolean) => {
     setOpen(isOpen);
     if (!isOpen) resetForm();
+  };
+
+  const handleForgotPassword = async () => {
+    if (!user?.email) {
+      setError("No email found for this account.");
+      return;
+    }
+    setIsResetting(true);
+    setError("");
+    try {
+      await sendPasswordResetEmail(auth, user.email);
+      toast.success("Password reset email sent! Check your inbox.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to send reset email.");
+    } finally {
+      setIsResetting(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -142,7 +161,17 @@ export const ChangePasswordDialog: React.FC = () => {
           <form onSubmit={handleSubmit} className="space-y-4 mt-4">
             {/* Current Password */}
             <div className="space-y-2">
-              <Label htmlFor="currentPassword">Current Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="currentPassword">Current Password</Label>
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  disabled={isResetting}
+                  className="text-xs font-medium text-primary hover:underline focus:outline-none disabled:opacity-50"
+                >
+                  {isResetting ? "Sending Link..." : "Forgot password?"}
+                </button>
+              </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
