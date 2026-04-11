@@ -47,7 +47,7 @@ Layer 3 → Encryption PIN          (Per-file access, hashed securely)
 | Auth | Firebase Authentication |
 | Database | Cloud Firestore |
 | Push Notifications | Firebase Cloud Messaging (FCM) |
-| Hosting | Firebase Hosting |
+| Hosting | Vercel |
 | State | React Context API + TanStack Query |
 | Forms | React Hook Form + Zod |
 | Routing | React Router v6 |
