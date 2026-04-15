@@ -176,7 +176,7 @@ export const Dashboard: React.FC = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">
-                    Failed login attempt: {log.email}
+                    Failed attempt: {log.type === "pin_failed" ? "PIN Validation" : "System Access"}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {new Date(log.timestamp).toLocaleString()}

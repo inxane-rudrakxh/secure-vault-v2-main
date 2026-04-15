@@ -4,6 +4,7 @@ import { Navbar } from "./Navbar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppLockPin } from "@/hooks/useAppLockPin";
 import { AppLockScreen } from "@/components/auth/AppLockScreen";
+import { CameraConsentModal } from "@/components/auth/CameraConsentModal";
 
 export const DashboardLayout: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -46,6 +47,7 @@ export const DashboardLayout: React.FC = () => {
       <main className="pt-20 pb-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <Outlet />
       </main>
+      <CameraConsentModal />
     </div>
   );
 };

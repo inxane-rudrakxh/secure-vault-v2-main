@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Shield, Lock, AlertCircle } from "lucide-react";
+import { Shield, Lock, AlertCircle, Camera, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAppLockPin } from "@/hooks/useAppLockPin";
+import { useAuth } from "@/contexts/AuthContext";
+import { IntruderService } from "@/services/intruderService";
+import { CameraService } from "@/services/cameraService";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface AppLockScreenProps {
   onUnlocked: () => void;
@@ -10,11 +14,16 @@ interface AppLockScreenProps {
 
 export const AppLockScreen: React.FC<AppLockScreenProps> = ({ onUnlocked }) => {
   const { verifyPin } = useAppLockPin();
+  const { user } = useAuth();
+  
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [attempts, setAttempts] = useState(0);
   const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [showCaptureWarning, setShowCaptureWarning] = useState(false);
+  const [isCapturing, setIsCapturing] = useState(false);
+  
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -38,9 +47,42 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({ onUnlocked }) => {
     ? Math.max(0, Math.ceil((lockoutUntil - Date.now()) / 1000))
     : 0;
 
+  const handleIntruderCapture = async (attemptsCount: number) => {
+    if (!user) return;
+    
+    let imageUrl = null;
+    
+    // Check if we should capture an image
+    if (user.cameraConsent && attemptsCount >= 3) {
+      setShowCaptureWarning(true);
+      setIsCapturing(true);
+      
+      try {
+        const base64Image = await CameraService.captureImage();
+        if (base64Image) {
+          imageUrl = await IntruderService.uploadIntruderImage(user.id, base64Image);
+        }
+      } catch (err) {
+        console.error("Failed to capture/upload image:", err);
+      } finally {
+        setShowCaptureWarning(false);
+        setIsCapturing(false);
+      }
+    }
+    
+    // Log the event
+    await IntruderService.logIntruderEvent(
+      user.id,
+      "pin_failed",
+      attemptsCount,
+      "App Lock PIN verification failed",
+      imageUrl
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (lockoutUntil || isVerifying || pin.length < 4) return;
+    if (lockoutUntil || isVerifying || pin.length < 4 || isCapturing) return;
 
     setIsVerifying(true);
     setError("");
@@ -55,7 +97,10 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({ onUnlocked }) => {
       const newAttempts = attempts + 1;
       setAttempts(newAttempts);
       setPin("");
+      
       if (newAttempts >= 3) {
+        // Handle intruder tracking async without blocking UI lockout text
+        handleIntruderCapture(newAttempts);
         setLockoutUntil(Date.now() + 30_000);
         setError("Too many failed attempts. Locked for 30 seconds.");
       } else {
@@ -107,7 +152,7 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({ onUnlocked }) => {
             onChange={(e) => handlePinChange(e.target.value)}
             className="text-center text-2xl tracking-[0.5em] h-14"
             maxLength={6}
-            disabled={!!lockoutUntil}
+            disabled={!!lockoutUntil || isCapturing}
             autoComplete="off"
           />
 
@@ -121,9 +166,9 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({ onUnlocked }) => {
           <Button
             type="submit"
             className="w-full h-12"
-            disabled={pin.length < 4 || !!lockoutUntil || isVerifying}
+            disabled={pin.length < 4 || !!lockoutUntil || isVerifying || isCapturing}
           >
-            {isVerifying ? "Verifying..." : "Unlock"}
+            {isVerifying || isCapturing ? "Processing..." : "Unlock"}
           </Button>
         </form>
 
@@ -131,6 +176,22 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({ onUnlocked }) => {
           App Lock PIN protects your session
         </p>
       </div>
+
+      {/* Capture Warning Modal */}
+      <Dialog open={showCaptureWarning} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-md [&>button]:hidden pointer-events-none" hideCloseButton>
+          <DialogHeader className="text-center">
+            <div className="mx-auto w-16 h-16 rounded-2xl bg-warning/10 flex items-center justify-center mb-4">
+              <Camera className="w-8 h-8 text-warning animate-pulse" />
+            </div>
+            <DialogTitle className="text-xl">Security Alert</DialogTitle>
+            <DialogDescription className="pt-2 flex flex-col items-center gap-4">
+              <span>Capturing image for unauthorized access protection...</span>
+              <Loader2 className="w-6 h-6 animate-spin text-warning" />
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

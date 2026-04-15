@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { AlertTriangle, Shield, Clock, Globe, Monitor, CheckCircle } from "lucide-react";
+import { AlertTriangle, Shield, Clock, Monitor, CheckCircle, Camera } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { useAuth } from "@/contexts/AuthContext";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 const formatDate = (date: Date): string => {
   return new Date(date).toLocaleDateString("en-US", {
@@ -17,14 +18,14 @@ const formatDate = (date: Date): string => {
 };
 
 export const IntruderLogs: React.FC = () => {
-  const { intruderLogs } = useAuth();
+  const { intruderLogs, user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [highlightNewest, setHighlightNewest] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   useEffect(() => {
     if (searchParams.get("highlight") === "newest" && intruderLogs.length > 0) {
       setHighlightNewest(true);
-      // Remove query param after highlighting
       const timer = setTimeout(() => {
         setSearchParams({}, { replace: true });
         setTimeout(() => setHighlightNewest(false), 3000);
@@ -68,7 +69,7 @@ export const IntruderLogs: React.FC = () => {
             </h2>
             <p className="text-muted-foreground text-sm">
               {hasAlerts
-                ? "Review the failed login attempts below"
+                ? "Review the failed PIN attempts below"
                 : "Your vault has no recorded unauthorized access attempts"}
             </p>
           </div>
@@ -92,7 +93,9 @@ export const IntruderLogs: React.FC = () => {
                   <div className="w-8 h-8 rounded-full bg-warning/10 flex items-center justify-center">
                     <AlertTriangle className="w-4 h-4 text-warning" />
                   </div>
-                  <span className="font-semibold">Failed Login Attempt</span>
+                  <span className="font-semibold">
+                    {log.type === "pin_failed" ? "Failed PIN Attempt" : "Failed Login Attempt"}
+                  </span>
                 </div>
                 <span className="px-3 py-1 rounded-full bg-warning/10 text-warning text-xs font-medium">
                   Warning
@@ -102,18 +105,6 @@ export const IntruderLogs: React.FC = () => {
               {/* Log Details */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <Globe className="w-4 h-4 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                        Email Attempted
-                      </p>
-                      <p className="font-medium break-all">{log.email}</p>
-                    </div>
-                  </div>
-
                   <div className="flex items-start gap-3">
                     <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 mt-0.5">
                       <Clock className="w-4 h-4 text-muted-foreground" />
@@ -130,18 +121,6 @@ export const IntruderLogs: React.FC = () => {
                 <div className="space-y-3">
                   <div className="flex items-start gap-3">
                     <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <Globe className="w-4 h-4 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                        IP Address
-                      </p>
-                      <p className="font-medium font-mono">{log.ip}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 mt-0.5">
                       <Monitor className="w-4 h-4 text-muted-foreground" />
                     </div>
                     <div>
@@ -154,13 +133,32 @@ export const IntruderLogs: React.FC = () => {
                 </div>
               </div>
 
-              {/* User Agent */}
+              {/* Captured Image */}
+              {log.imageUrl && (
+                <div className="mt-4 pt-4 border-t border-border">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-2">
+                    <Camera className="w-4 h-4" /> Captured Image
+                  </p>
+                  <div 
+                    className="relative w-24 h-24 rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity border-2 border-warning/20 shadow-lg"
+                    onClick={() => setSelectedImage(log.imageUrl!)}
+                  >
+                    <img 
+                      src={log.imageUrl} 
+                      alt="Intruder Capture" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Device Info */}
               <div className="mt-4 p-3 rounded-lg bg-muted/50">
                 <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                  User Agent
+                  Device Info
                 </p>
                 <p className="text-xs font-mono text-muted-foreground break-all line-clamp-2">
-                  {log.userAgent}
+                  {log.deviceInfo}
                 </p>
               </div>
             </GlassCard>
@@ -186,21 +184,33 @@ export const IntruderLogs: React.FC = () => {
           <div className="space-y-1">
             <p className="font-medium">What we monitor:</p>
             <ul className="text-muted-foreground space-y-1">
-              <li>• Failed login attempts</li>
-              <li>• Invalid credentials usage</li>
-              <li>• Suspicious IP addresses</li>
+              <li>• Failed App Lock PIN attempts</li>
+              <li>• Failed Encryption PIN attempts</li>
             </ul>
           </div>
           <div className="space-y-1">
             <p className="font-medium">What we log:</p>
             <ul className="text-muted-foreground space-y-1">
               <li>• Timestamp of attempt</li>
-              <li>• IP address</li>
               <li>• Browser/device information</li>
+              <li>• Camera capture (if authorized)</li>
             </ul>
           </div>
         </div>
       </GlassCard>
+
+      {/* Image Modal */}
+      <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
+        <DialogContent className="sm:max-w-xl bg-black/90 border-muted p-2">
+           {selectedImage && (
+             <img 
+                src={selectedImage} 
+                alt="Full Intruder Capture" 
+                className="w-full h-auto max-h-[80vh] object-contain rounded-md"
+             />
+           )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
